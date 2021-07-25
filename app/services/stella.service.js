@@ -8,7 +8,7 @@ var _ = require('lodash');
 const validation = require("../services/validation.service");
 const dateService = require("../services/date.service");
 
-exports.filterStellaListings = async (searchParams) => {
+exports.filterStellaListings = async (searchParams, alternative = false) => {
 
     console.log(searchParams);
     const sanitization = validation.inputValidation(searchParams);
@@ -33,7 +33,7 @@ exports.filterStellaListings = async (searchParams) => {
                                 startDate =  getFormattedDate(endDate, 2);
                                 endDate =  getFormattedDate(endDate, 1);
                             }
-                            matchQuery += checkIfAvailableByDate(startDate, endDate)
+                            matchQuery += checkIfAvailableByDate(startDate, endDate);
                           });
                       });
                     break;
@@ -42,7 +42,7 @@ exports.filterStellaListings = async (searchParams) => {
                         let weekDates =  dateService.calculateWeekEndForAMonth(month, searchParams);
                         _.forEach(weekDates, function(endDate) {
                             const startDate =  getFormattedDate(endDate, 6);
-                            matchQuery += checkIfAvailableByDate(startDate, endDate)
+                            matchQuery += checkIfAvailableByDate(startDate, endDate);
                           });
                       });
                     break;
@@ -63,14 +63,20 @@ exports.filterStellaListings = async (searchParams) => {
         }
 
         if (!_.isEmpty(searchParams.apartmentType)){
-            matchQuery += filterByPropertyType(searchParams.apartmentType)
+            matchQuery += filterByPropertyType(searchParams.apartmentType);
         }
 
         matchQuery += groupByClause();
         const exactMatchStays = await executeQuery(matchQuery);
 
         if(!_.isEmpty(exactMatchStays)){
-            result.match.push(exactMatchStays)
+            result.match.push(exactMatchStays);
+        } else {
+            alternativeSearch(searchParams);
+        }
+
+        if(alternative){
+            result.alternative.push(exactMatchStays);
         }
         
         return result;
@@ -78,6 +84,12 @@ exports.filterStellaListings = async (searchParams) => {
         return sanitization;
     }
 };
+
+function alternativeSearch(searchParams){
+    searchParams.date.start = getFurtherDate(searchParams.date.start,1);
+    searchParams.date.end = getFurtherDate(searchParams.date.end,1);
+    filterStellaListings(searchParams, true);
+}
 
 function executeQuery(matchQuery){
     return db.sequelize.query(matchQuery, { type: QueryTypes.SELECT });
@@ -102,6 +114,10 @@ function filterByPropertyType(apartmentType){
 
 function getFormattedDate(date, subtractDays){
     return  moment(date, 'YYYY-MM-DD').subtract(subtractDays,'days').format('YYYY-MM-DD');
+}
+
+function getFurtherDate(date, addDays){
+    return  moment(date, 'YYYY-MM-DD').add(addDays,'days').format('YYYY-MM-DD');
 }
 
 function getBaseQueryByCity(city){
