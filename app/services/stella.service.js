@@ -49,7 +49,7 @@ exports.filterStellaListings = async (searchParams) => {
                   break;
                 case "month":
                     _.forEach(searchParams.flexible.months, function(month) {
-                        const dateRange =  dateService.getStartAndEndOfMonth(month, 6);
+                        const dateRange =  dateService.getStartAndEndOfMonth(month);
                         matchQuery += checkIfAvailableByDate(dateRange.start, dateRange.end);
                       });
                   break;
