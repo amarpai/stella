@@ -4,7 +4,8 @@ Nodejs - Rest API Application using Relational Postgres DB  (Amar Pai Fondekar)
 
 **Features Completed:**
 * Search with city, date, apartmentType, amenities.
-* Search with flexible type Weekend
+* Search with flexible type Weekend, Week and Month
+* Search for dubai weekend and Sat, sun weekend.
 
 
 ## API backend endpoints (port 8080)
