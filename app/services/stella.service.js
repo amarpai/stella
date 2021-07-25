@@ -35,13 +35,20 @@ exports.filterStellaListings = async (searchParams) => {
                       });
                     break;
                 case "week":
-                  // I plan to do a similar implementation to find week start and end date and reuse same function as for weekend
-                  // I had limited time to finish but i will commit to git and keep updating when i get some free time.
+                    _.forEach(searchParams.flexible.months, function(month) {
+                        let weekDates =  calculateWeekEndForAMonth(month, searchParams);
+                        _.forEach(weekDates, function(endDate) {
+                            const startDate =  getFormattedDate(endDate, 6);
+                            matchQuery += checkIfAvailableByDate(startDate, endDate)
+                          });
+                      });
+                    break;
                   break;
                 case "month":
-                // I plan to do a similar implementation to find month start and end date and reuse same function as for weekend
+                    // To do
                   break;
                 default:
+                    matchQuery += ``;
               }
         }
 
