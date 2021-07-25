@@ -1,9 +1,12 @@
-const db = require("../models");
-const { QueryTypes } = require('sequelize');
-const validation = require("../services/validation.service");
-var _ = require('lodash');
 const { query } = require("express");
+const db = require("../models");
+
+const { QueryTypes } = require('sequelize');
 var moment = require('moment');
+var _ = require('lodash');
+
+const validation = require("../services/validation.service");
+const dateService = require("../services/date.service");
 
 exports.filterStellaListings = async (searchParams) => {
 
@@ -21,7 +24,7 @@ exports.filterStellaListings = async (searchParams) => {
             switch(searchParams.flexible.type) {
                 case "weekend":
                     _.forEach(searchParams.flexible.months, function(month) {
-                        let weekendDates =  calculateWeekEndForAMonth(month, searchParams);
+                        let weekendDates =  dateService.calculateWeekEndForAMonth(month, searchParams);
                         _.forEach(weekendDates, function(endDate) {
                             let startDate;
                             if(searchParams.city.toLowerCase() != 'dubai'){
@@ -36,7 +39,7 @@ exports.filterStellaListings = async (searchParams) => {
                     break;
                 case "week":
                     _.forEach(searchParams.flexible.months, function(month) {
-                        let weekDates =  calculateWeekEndForAMonth(month, searchParams);
+                        let weekDates =  dateService.calculateWeekEndForAMonth(month, searchParams);
                         _.forEach(weekDates, function(endDate) {
                             const startDate =  getFormattedDate(endDate, 6);
                             matchQuery += checkIfAvailableByDate(startDate, endDate)
@@ -46,7 +49,7 @@ exports.filterStellaListings = async (searchParams) => {
                   break;
                 case "month":
                     _.forEach(searchParams.flexible.months, function(month) {
-                        const dateRange =  getStartAndEndOfMonth(month, 6);
+                        const dateRange =  dateService.getStartAndEndOfMonth(month, 6);
                         matchQuery += checkIfAvailableByDate(dateRange.start, dateRange.end);
                       });
                   break;
@@ -120,29 +123,3 @@ function checkIfAvailableByDate(startDate, endDate) {
 
     return query;
 }
-
-function calculateWeekEndForAMonth(month){
-    const monthNumber = moment().month(month).format("M");
-    const weekendDates = sundaysInMonth(monthNumber, moment().format('YYYY'));
-
-    return weekendDates;
-}
-
-function getStartAndEndOfMonth(month){
-    const monthNumber = moment().month(month).format("M");
-    const monthStart = moment(moment().format('YYYY')+'-'+monthNumber+1+'-1').startOf('month').format('YYYY-MM-DD');
-    const monthEnd = moment(moment().format('YYYY')+'-'+monthNumber+1+'-1').endOf('month').format('YYYY-MM-DD')
-
-    return { start: monthStart, end: monthEnd }
-}
-
-function sundaysInMonth( m, y ) {
-    var days = new Date( y,m,0 ).getDate();
-    var sundays = [ 8 - (new Date( m +'/01/'+ y ).getDay()) ];
-    for ( var i = sundays[0] + 7; i < days; i += 7 ) {
-      sundays.push(moment().format('YYYY')+'-'+m+'-'+i);
-    }
-    sundays[0] = moment().format('YYYY')+'-'+m+'-'+sundays[0];
-
-    return sundays;
-  }
