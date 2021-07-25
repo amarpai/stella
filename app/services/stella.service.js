@@ -11,11 +11,7 @@ exports.filterStellaListings = async (searchParams) => {
     const sanitization = validation.inputValidation(searchParams);
     if(sanitization.error == false){
         result = {match: [], alternative: [], other: []}
-        let matchQuery = `select p.* from property p 
-                          LEFT join availability a ON (p.id = a.property_id and is_blocked = true)
-                          LEFT join reservation r ON (p.id = r.property_id)
-                          LEFT join building b ON b.id = p.building_id
-                          where  b.city='`+ searchParams.city + `'`;
+        let matchQuery = getBaseQueryByCity(searchParams.city);
 
         if (!_.isEmpty(searchParams.date)){
             matchQuery += checkIfAvailableByDate(searchParams.date.start, searchParams.date.end);
@@ -26,9 +22,14 @@ exports.filterStellaListings = async (searchParams) => {
                 case "weekend":
                     _.forEach(searchParams.flexible.months, function(month) {
                         let weekendDates =  calculateWeekEndForAMonth(month, searchParams);
-                        console.log(weekendDates);
                         _.forEach(weekendDates, function(endDate) {
-                            const startDate = moment(endDate, 'YYYY-MM-DD').subtract(1,'days').format('YYYY-MM-DD');
+                            let startDate;
+                            if(searchParams.city.toLowerCase() != 'dubai'){
+                                startDate =  getFormattedDate(endDate, 1);
+                            } else {
+                                startDate =  getFormattedDate(endDate, 2);
+                                endDate =  getFormattedDate(endDate, 1);
+                            }
                             matchQuery += checkIfAvailableByDate(startDate, endDate)
                           });
                       });
@@ -45,19 +46,15 @@ exports.filterStellaListings = async (searchParams) => {
         }
 
         if (!_.isEmpty(searchParams.amenities)){
-            _.forEach(searchParams.amenities, function(amenitie) {
-                matchQuery += ` AND amenities::text ilike '%`+ amenitie +`%'`
-              });
+            matchQuery += filterByAminities(searchParams.amenities);
         }
 
         if (!_.isEmpty(searchParams.apartmentType)){
-            matchQuery += ` AND property_type::text = '`+ searchParams.apartmentType +`'`
+            matchQuery += filterByPropertyType(searchParams.apartmentType)
         }
 
-        matchQuery += ` group by p.id`;
-        console.log(matchQuery);
-
-        const exactMatchStays = await db.sequelize.query(matchQuery, { type: QueryTypes.SELECT });
+        matchQuery += groupByClause();
+        const exactMatchStays = await executeQuery(matchQuery);
 
         if(!_.isEmpty(exactMatchStays)){
             result.match.push(exactMatchStays)
@@ -69,7 +66,41 @@ exports.filterStellaListings = async (searchParams) => {
     }
 };
 
-let checkIfAvailableByDate = (startDate, endDate) =>{
+function executeQuery(matchQuery){
+    return db.sequelize.query(matchQuery, { type: QueryTypes.SELECT });
+}
+
+function groupByClause(){
+    return ` group by p.id`;
+}
+
+function filterByAminities(amenities){
+    _.forEach(amenities, function(amenitie) {
+        query += ` AND amenities::text ilike '%`+ amenitie +`%'`
+    });
+
+    return query;
+}
+
+function filterByPropertyType(apartmentType){
+    return ` AND property_type::text = '`+ apartmentType +`'`
+}
+
+function getFormattedDate(date, subtractDays){
+    return  moment(date, 'YYYY-MM-DD').subtract(subtractDays,'days').format('YYYY-MM-DD');
+}
+
+function getBaseQueryByCity(city){
+    const query = `select p.* from property p 
+    LEFT join availability a ON (p.id = a.property_id and is_blocked = true)
+    LEFT join reservation r ON (p.id = r.property_id)
+    LEFT join building b ON b.id = p.building_id
+    where  b.city='`+ city + `'`;
+
+    return query;
+}
+
+function checkIfAvailableByDate(startDate, endDate) {
     const query = ` AND
     (('`+ startDate +`' NOT BETWEEN a.start_date and a.end_date) OR a.start_date IS NULL) AND
     (('`+ startDate +`' NOT BETWEEN r.check_in and r.check_out) OR r.check_in IS NULL)
@@ -81,8 +112,8 @@ let checkIfAvailableByDate = (startDate, endDate) =>{
 
 function calculateWeekEndForAMonth(month){
     const monthNumber = moment().month(month).format("M");
-    const weekendDates = sundaysInMonth(monthNumber, 2021);
-    console.log(weekendDates);
+    const weekendDates = sundaysInMonth(monthNumber, moment().format('YYYY'));
+
     return weekendDates;
 }
 
@@ -93,5 +124,6 @@ function sundaysInMonth( m, y ) {
       sundays.push(moment().format('YYYY')+'-'+m+'-'+i);
     }
     sundays[0] = moment().format('YYYY')+'-'+m+'-'+sundays[0];
+
     return sundays;
   }
