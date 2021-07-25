@@ -82,6 +82,7 @@ function groupByClause(){
 }
 
 function filterByAminities(amenities){
+    let query = ``;
     _.forEach(amenities, function(amenitie) {
         query += ` AND amenities::text ilike '%`+ amenitie +`%'`
     });
