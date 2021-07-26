@@ -52,7 +52,10 @@ OR
             "jun",
             "Jul"
         ]
-    }
+    },
+    "amenities": [
+        "garden"
+    ]
 }
 
 ```
