@@ -27,6 +27,37 @@ POST http://localhost:8080/api/v1/listings
 
 ```
 
+**Request Body**
+
+```bash
+{
+    "city": "Dubai",
+    "amenities": [
+        "garden"
+    ],
+    "apartmentType": "3bdr",
+    "date": {
+        "start": "2020-06-01",
+        "end": "2021-08-03"
+    }
+}
+
+OR
+
+{
+    "city": "Dubai",
+    "flexible": {
+        "type": "weekend",
+        "months": [
+            "jun",
+            "Jul"
+        ]
+    }
+}
+
+```
+
+
 Postman Export: https://www.getpostman.com/collections/d732989770424c15be1f
 
 ![image](https://user-images.githubusercontent.com/10544557/126906143-4ff16a2a-78e1-4fb9-a6c3-70f1a3193ba9.png)
